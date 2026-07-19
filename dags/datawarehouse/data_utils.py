@@ -10,8 +10,8 @@ def get_conn_cursor():
     return conn,cur
 
 def close_conn_cursor(conn, cur):
-    cur.close()
-    conn.close()
+    cur.close()
+    conn.close()
 
 def create_schema(schema):
     conn, cur = get_conn_cursor()
