@@ -130,5 +130,5 @@ jobs:
           done
           
       - name: Tear down Docker Compose
-        if: always()
+        if: always() && (steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch')
         run: docker compose down
