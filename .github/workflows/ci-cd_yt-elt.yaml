@@ -85,9 +85,34 @@ jobs:
             include/**
             docker-compose.yaml
 
-      - name: Create empty .env file
+      # 💡 將環境變數真正寫入 .env 檔案，讓 Postgres 能拿到啟動所需的密碼
+      - name: Create .env file
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
-        run: touch .env
+        run: |
+          touch .env
+          echo "AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_WWW_USER_PASSWORD}" >> .env
+          echo "AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_WWW_USER_USERNAME}" >> .env
+          echo "API_KEY=${API_KEY}" >> .env
+          echo "CELERY_BACKEND_NAME=${CELERY_BACKEND_NAME}" >> .env
+          echo "CELERY_BACKEND_PASSWORD=${CELERY_BACKEND_PASSWORD}" >> .env
+          echo "CELERY_BACKEND_USERNAME=${CELERY_BACKEND_USERNAME}" >> .env
+          echo "ELT_DATABASE_NAME=${ELT_DATABASE_NAME}" >> .env
+          echo "ELT_DATABASE_PASSWORD=${ELT_DATABASE_PASSWORD}" >> .env
+          echo "ELT_DATABASE_USERNAME=${ELT_DATABASE_USERNAME}" >> .env
+          echo "FERNET_KEY=${FERNET_KEY}" >> .env
+          echo "METADATA_DATABASE_NAME=${METADATA_DATABASE_NAME}" >> .env
+          echo "METADATA_DATABASE_PASSWORD=${METADATA_DATABASE_PASSWORD}" >> .env
+          echo "METADATA_DATABASE_USERNAME=${METADATA_DATABASE_USERNAME}" >> .env
+          echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
+          echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
+          echo "POSTGRES_CONN_HOST=${POSTGRES_CONN_HOST}" >> .env
+          echo "POSTGRES_CONN_PORT=${POSTGRES_CONN_PORT}" >> .env
+          echo "POSTGRES_CONN_USERNAME=${POSTGRES_CONN_USERNAME}" >> .env
+          echo "AIRFLOW_UID=${AIRFLOW_UID}" >> .env
+          echo "CHANNEL_HANDLE=${CHANNEL_HANDLE}" >> .env
+          echo "DOCKERHUB_NAMESPACE=${DOCKERHUB_NAMESPACE}" >> .env
+          echo "DOCKERHUB_REPOSITORY=${DOCKERHUB_REPOSITORY}" >> .env
+          echo "DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}" >> .env
 
       - name: Set up Docker Compose
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
@@ -95,7 +120,7 @@ jobs:
 
       - name: Wait for containers to start
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
-        run: sleep 15
+        run: sleep 20
 
       - name: Run Unit and Integration Tests
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
