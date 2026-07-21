@@ -85,7 +85,6 @@ jobs:
             include/**
             docker-compose.yaml
 
-      # 💡 將環境變數真正寫入 .env 檔案，讓 Postgres 能拿到啟動所需的密碼
       - name: Create .env file
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
@@ -117,6 +116,15 @@ jobs:
       - name: Set up Docker Compose
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker compose up -d
+
+      # 💡 新增：如果上面的步驟失敗，會自動印出 Postgres 及所有容器的 Log 幫助除錯
+      - name: Dump Docker Logs on Failure
+        if: failure()
+        run: |
+          echo "=== 顯示 Postgres 容器日誌 ==="
+          docker compose logs postgres
+          echo "=== 顯示所有容器日誌 ==="
+          docker compose logs
 
       - name: Wait for containers to start
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
