@@ -1,24 +1,3 @@
-我知道一直遇到不同的報錯會讓人十分心煩。我們退回原點，用**最簡單、最乾淨**的方式來解決 `image_fda76f.png` 中顯示的 `.env` 檔案找不到的問題。
-
-### 為什麼會報這個錯？
-
-因為您的 `docker-compose.yaml` 裡面要求讀取一個 `.env` 檔案，但 GitHub 上沒有這個檔案。
-
-### 最簡單的解法
-
-其實您在 YAML 檔的 `env:` 區塊已經把所有需要的密碼跟變數都設定好了，Docker Compose 會自動去讀取這些變數！我們**不需要把變數一行一行寫入檔案**，我們只需要**建一個「空的」 `.env` 檔案**來騙過 Docker Compose，讓它不要因為找不到檔案而崩潰即可。
-
-請直接複製這份最終版的 YAML，覆蓋您現有的檔案。
-
-### 修改重點：
-
-1. **新增 `touch .env**`：產生一個空檔案，完美解決 `image_fda76f.png` 的報錯。
-2. **新增 `sleep 15**`：在 `docker compose up -d` 之後暫停 15 秒，避免容器還沒啟動完就跑測試導致失敗。
-3. **修復 `Tear down Docker Compose**`：加上條件，確保不會在沒啟動 Docker 的情況下亂清環境。
-
----
-
-```yaml
 name: CI-CD Pipeline
 
 on:
@@ -37,6 +16,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Get changed files
         id: changed-files-build
         uses: tj-actions/changed-files@v45
@@ -44,15 +24,18 @@ jobs:
           files: |
             Dockerfile
             requirements.txt
+
       - name: Set up Docker Buildx
         if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
+
       - name: Log in to DockerHub
         if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
       - name: Build and push Docker image
         if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
@@ -92,7 +75,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Get changed files
         id: changed-files-tests
         uses: tj-actions/changed-files@v45
@@ -102,7 +85,6 @@ jobs:
             include/**
             docker-compose.yaml
 
-      # 💡 解決報錯的關鍵：建立一個空的 .env 檔案
       - name: Create empty .env file
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: touch .env
@@ -111,7 +93,6 @@ jobs:
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker compose up -d
 
-      # 💡 給容器 15 秒啟動時間，避免後續測試因找不到容器而失敗
       - name: Wait for containers to start
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: sleep 15
@@ -119,7 +100,7 @@ jobs:
       - name: Run Unit and Integration Tests
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: docker exec -t airflow-worker sh -c "pytest tests/ -v"
-        
+
       - name: Run End-to-End DAG Tests
         if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
@@ -127,9 +108,7 @@ jobs:
           for DAG in "${DAG_NAMES[@]}"; do 
             docker exec -t airflow-worker sh -c "airflow dags test $DAG"
           done
-          
+
       - name: Tear down Docker Compose
         if: always() && (steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch')
         run: docker compose down
-
-```
